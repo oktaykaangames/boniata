@@ -2699,7 +2699,7 @@ co.doubleduck.utils.KiziPreloader.prototype = $extend(NMEPreloader.prototype,{
 	,__class__: co.doubleduck.utils.KiziPreloader
 });
 co.doubleduck.pinata.Preloader = function() {
-	this.KIZI = true;
+	this.KIZI = false;
 	co.doubleduck.utils.KiziPreloader.call(this,new openfl.geom.Rectangle(10,460,215,40),0,1);
 };
 $hxClasses["co.doubleduck.pinata.Preloader"] = co.doubleduck.pinata.Preloader;
