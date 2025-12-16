@@ -2,148 +2,234 @@
 <html lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
-	<meta charset="utf-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<title>Pinata</title>
 
-	<title>Pinata</title>
+<meta id="viewport" name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
 
-	<meta id="viewport" name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-	<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="./lib/soundjs.min.js"></script>
+<script type="text/javascript" src="./Pinata.js"></script>
 
-	<script type="text/javascript" src="./lib/soundjs.min.js"></script>
-	<script type="text/javascript" src="./Pinata.js"></script>
+<script type="text/javascript">
+  function HTML5API_levelStarted() { window.HTML5API && HTML5API.levelStarted && HTML5API.levelStarted(); }
+  function HTML5API_levelEnded() { window.HTML5API && HTML5API.levelEnded && HTML5API.levelEnded(); }
+  function HTML5API_preloaderStarted() { window.HTML5API && HTML5API.preloaderStarted && HTML5API.preloaderStarted(); }
+  function HTML5API_preloaderEnded() { window.HTML5API && HTML5API.preloaderEnded && HTML5API.preloaderEnded(); }
+  function HTML5API_showStartButton() { return window.HTML5API && HTML5API.showStartButton && HTML5API.showStartButton(); }
+  function HTML5API_getUserId() { if (window.HTML5API && HTML5API.getUserId) return HTML5API.getUserId(); }
+  function HTML5API_isAdPlaying() { if (window.HTML5API && HTML5API.isAdPlaying) return HTML5API.isAdPlaying(); }
+  function HTML5API_onAdStart(func) { return window.HTML5API && HTML5API.onAdStart && HTML5API.onAdStart(func); }
+  function HTML5API_onAdComplete(func) { return window.HTML5API && HTML5API.onAdComplete && HTML5API.onAdComplete(func); }
+  function HTML5API_showMidroll() { return window.HTML5API && HTML5API.showMidroll && HTML5API.showMidroll(); }
+  function HTML5API_setWidgetState(params) { window.HTML5API && HTML5API.setWidgetState && HTML5API.setWidgetState(params); }
+</script>
 
-    <script type="text/javascript">
-        function HTML5API_levelStarted() { window.HTML5API && HTML5API.levelStarted && HTML5API.levelStarted(); }
-        function HTML5API_levelEnded() { window.HTML5API && HTML5API.levelEnded && HTML5API.levelEnded(); }
-        function HTML5API_preloaderStarted() { window.HTML5API && HTML5API.preloaderStarted && HTML5API.preloaderStarted(); }
-        function HTML5API_preloaderEnded() { window.HTML5API && HTML5API.preloaderEnded && HTML5API.preloaderEnded(); }
-        function HTML5API_showStartButton() { return window.HTML5API && HTML5API.showStartButton && HTML5API.showStartButton(); }
-        function HTML5API_getUserId() { if(window.HTML5API && HTML5API.getUserId) return HTML5API.getUserId(); }
-        function HTML5API_isAdPlaying() { if(window.HTML5API && HTML5API.isAdPlaying) return HTML5API.isAdPlaying(); }
-        function HTML5API_onAdStart(func) { return window.HTML5API && HTML5API.onAdStart && HTML5API.onAdStart(func); }
-        function HTML5API_onAdComplete(func) { return window.HTML5API && HTML5API.onAdComplete && HTML5API.onAdComplete(func); }
-        function HTML5API_showMidroll() { return window.HTML5API && HTML5API.showMidroll && HTML5API.showMidroll(); }
-        function HTML5API_setWidgetState(params) { window.HTML5API && HTML5API.setWidgetState && HTML5API.setWidgetState(params); }
-    </script>
+<script>
+  // iOS: иногда слишком высокий devicePixelRatio ломает viewport/масштаб
+  (function () {
+    try {
+      window.addEventListener("touchmove", function (event) { event.preventDefault(); }, { passive: false });
 
-	<script>
-		window.addEventListener("touchmove", function (event) { event.preventDefault(); }, { passive: false });
+      if (typeof window.devicePixelRatio !== "undefined" && window.devicePixelRatio > 2) {
+        var meta = document.getElementById("viewport");
+        meta.setAttribute("content", "width=device-width, initial-scale=" + (2 / window.devicePixelRatio) + ", user-scalable=0, viewport-fit=cover");
+      }
+    } catch (e) {}
+  })();
+</script>
 
-		if (typeof window.devicePixelRatio != "undefined" && window.devicePixelRatio > 2) {
-			var meta = document.getElementById("viewport");
-			meta.setAttribute("content", "width=device-width, initial-scale=" + (2 / window.devicePixelRatio) + ", user-scalable=0");
-		}
-	</script>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: none;
+  }
 
-	<style>
-		html, body { margin: 0; padding: 0; height: 100%; }
-		#openfl-content { background: #000000; width: 100%; height: 100%; z-index: 1; overflow: visible; }
-		canvas { display: inherit; margin: 0 auto !important; }
-	</style>
+  #openfl-content {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    margin: 0 auto !important;
+    background: #000;
+  }
+</style>
 
 </head>
 <body>
 
-	<div id="openfl-content"></div>
+<div id="openfl-content"></div>
 
-	<script type="text/javascript">
+<script type="text/javascript">
+(function () {
+  // ---------- 1) Убираем встроенный preloader игры (без правки Pinata.js) ----------
+  function patchPreloader() {
+    try {
+      if (!window.co || !co.doubleduck || !co.doubleduck.pinata) return;
 
-		var embeddedOnce = false;
-		var lastEmbedW = 0;
-		var lastEmbedH = 0;
+      // Подменяем Preloader на мгновенный COMPLETE
+      co.doubleduck.pinata.Preloader = function () {
+        // максимально мягко: если openfl есть — наследуемся
+        try {
+          if (window.openfl && openfl.display && openfl.display.Sprite) {
+            openfl.display.Sprite.call(this);
+          }
+        } catch (e) {}
 
-		function getSize() {
-			var orientation = "portrait";
-			var element = document.getElementById("openfl-content");
-			var clientWidth = element.clientWidth;
-			var clientHeight = element.clientHeight;
+        // сигналим наружу (если кто-то слушает)
+        try { HTML5API_preloaderStarted(); } catch (e) {}
+        try { HTML5API_preloaderEnded(); } catch (e) {}
 
-			var minWidth = 320;
-			var minHeight = 480;
+        // и сразу завершаем
+        try {
+          if (window.openfl && openfl.events && openfl.events.Event) {
+            this.dispatchEvent(new openfl.events.Event(openfl.events.Event.COMPLETE));
+          }
+        } catch (e) {}
+      };
 
-			var finalWidth = minWidth;
-			var finalHeight = minHeight;
+      // На всякий — минимизируем задержку “минимального показа”, если где-то осталась
+      if (co.doubleduck && co.doubleduck.utils && co.doubleduck.utils.KiziPreloader) {
+        try { co.doubleduck.utils.KiziPreloader.prototype.MINIMUM_DISPLAY_TIME = 0; } catch (e) {}
+      }
+    } catch (e) {}
+  }
 
-			if (orientation == "portrait") {
-				var currRatio = clientHeight / clientWidth;
-				var minRatio = minHeight / finalWidth;
-				var maxHeight = 568;
-				if (maxHeight == null) maxHeight = finalHeight;
-				var maxRatio = maxHeight / finalWidth;
+  // ---------- 2) Надежный embed на мобилках/WKWebView ----------
+  var embedded = false;
+  var lastW = 0, lastH = 0;
+  var booting = false;
 
-				if (currRatio <= minRatio) finalHeight = minHeight;
-				else if (currRatio >= maxRatio) finalHeight = maxHeight;
-				else finalHeight = Math.floor(finalWidth * currRatio);
+  function getContainer() {
+    return document.getElementById("openfl-content");
+  }
 
-			} else if (orientation == "landscape") {
-				var currRatio2 = clientWidth / clientHeight;
-				var minRatio2 = minWidth / finalHeight;
-				var maxWidth = null;
-				if (maxWidth == null) maxWidth = finalWidth;
-				var maxRatio2 = maxWidth / finalHeight;
+  function safeSize() {
+    var el = getContainer();
+    var w = (el && el.clientWidth) ? el.clientWidth : 0;
+    var h = (el && el.clientHeight) ? el.clientHeight : 0;
 
-				if (currRatio2 <= minRatio2) finalWidth = minWidth;
-				else if (currRatio2 >= maxRatio2) finalWidth = maxWidth;
-				else finalWidth = Math.floor(finalHeight * currRatio2);
-			}
+    // fallback если WKWebView вернул 0
+    if (w < 10) w = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    if (h < 10) h = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
 
-			return { width: finalWidth, height: finalHeight };
-		}
+    // финальная защита
+    w = Math.max(320, w);
+    h = Math.max(480, h);
 
-		function bootEmbed(retry) {
-			var element = document.getElementById("openfl-content");
-			if (!element) return;
+    return { w: w, h: h };
+  }
 
-			var w = element.clientWidth || 0;
-			var h = element.clientHeight || 0;
+  function clearContainer(el) {
+    if (!el) return;
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
 
-			// iOS Safari / WKWebView: can be 0x0 initially
-			if ((w < 10 || h < 10) && retry < 60) {
-				setTimeout(function () { bootEmbed(retry + 1); }, 50);
-				return;
-			}
+  function doEmbed(force) {
+    if (booting) return;
+    booting = true;
 
-			var size = getSize();
+    var el = getContainer();
+    if (!el) { booting = false; return; }
 
-			// Avoid re-embedding with same size
-			if (embeddedOnce && size.width === lastEmbedW && size.height === lastEmbedH) return;
+    var s = safeSize();
 
-			lastEmbedW = size.width;
-			lastEmbedH = size.height;
+    if (!force && embedded && s.w === lastW && s.h === lastH) {
+      booting = false;
+      return;
+    }
 
-			// Clean container on re-embed (prevents black stale canvas)
-			if (embeddedOnce) {
-				while (element.firstChild) element.removeChild(element.firstChild);
-			}
+    lastW = s.w;
+    lastH = s.h;
 
-			embeddedOnce = true;
-			lime.embed("openfl-content", size.width, size.height, "000000");
+    // патчим preloader прямо перед embed
+    patchPreloader();
 
-			// Samsung stock-browser freeze fix (kept)
-			if (/Android/.test(navigator.userAgent) && !(/Chrome/.test(navigator.userAgent))) {
-				var ds = document.documentElement.style;
-				var origW = ds.width;
-				ds.width = "101%";
-				setTimeout(function () { ds.width = origW; }, 500);
-			}
-		}
+    // на ре-embed чистим контейнер
+    if (embedded) clearContainer(el);
 
-		window.addEventListener("load", function () {
-			bootEmbed(0);
-		}, false);
+    embedded = true;
 
-		// Re-embed after orientation change (iOS often needs it)
-		var rotTimer = null;
-		window.addEventListener("orientationchange", function () {
-			if (rotTimer) clearTimeout(rotTimer);
-			rotTimer = setTimeout(function () {
-				bootEmbed(0);
-			}, 250);
-		}, false);
+    try {
+      // lime.embed должен быть доступен из Pinata.js
+      lime.embed("openfl-content", s.w, s.h, "000000");
+    } catch (e) {
+      // если по какой-то причине embed упал — попробуем еще раз через тик
+      setTimeout(function () {
+        try {
+          patchPreloader();
+          clearContainer(el);
+          lime.embed("openfl-content", s.w, s.h, "000000");
+        } catch (e2) {}
+      }, 100);
+    }
 
-	</script>
+    // старый фикс для некоторых Android-браузеров (оставим, не мешает)
+    try {
+      if (/Android/.test(navigator.userAgent) && !(/Chrome/.test(navigator.userAgent))) {
+        var ds = document.documentElement.style;
+        var origW = ds.width;
+        ds.width = "101%";
+        setTimeout(function () { ds.width = origW; }, 300);
+      }
+    } catch (e) {}
+
+    booting = false;
+  }
+
+  function scheduleEmbed(force) {
+    // WKWebView: иногда нужно дать layout кадр-два
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        doEmbed(!!force);
+      });
+    });
+  }
+
+  // старт
+  window.addEventListener("load", function () {
+    scheduleEmbed(true);
+  }, false);
+
+  // iOS/Safari/WKWebView: возврат из background и bfcache
+  window.addEventListener("pageshow", function () {
+    scheduleEmbed(true);
+  }, false);
+
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) scheduleEmbed(true);
+  }, false);
+
+  var resizeTimer = null;
+  function onResizeLike() {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      scheduleEmbed(true);
+    }, 250);
+  }
+
+  window.addEventListener("resize", onResizeLike, false);
+  window.addEventListener("orientationchange", onResizeLike, false);
+
+})();
+</script>
 
 </body>
 </html>
