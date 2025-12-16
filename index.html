@@ -1,67 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta charset="UTF-8">
 
-  <title>Pinata</title>
+    <!-- ВАЖНО: корректный viewport -->
+    <meta name="viewport"
+          content="width=device-width,
+                   initial-scale=1.0,
+                   maximum-scale=1.0,
+                   user-scalable=no,
+                   viewport-fit=cover">
 
-  <meta name="viewport"
-        content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Pinata</title>
 
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      background: #000;
-      overflow: hidden;
-      -webkit-text-size-adjust: 100%;
-      touch-action: none;
-    }
+    <!-- УБРАН manifest / appcache -->
+    <!-- <html manifest="offline.appcache"> ❌ -->
 
-    #openfl-content {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      background: #000;
-    }
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/main.css">
 
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-      background: #000;
-    }
-  </style>
+    <!-- CreateJS libs -->
+    <script src="js/jquery-2.0.3.min.js"></script>
+    <script src="js/createjs-2013.12.12.min.js"></script>
+    <script src="js/soundjs.min.js"></script>
 
-  <script src="./lib/soundjs.min.js"></script>
-  <script src="./Pinata.js"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            background: #000;
+        }
+
+        /* НИКАКИХ preload экранов */
+        #loader,
+        #block_game {
+            display: none !important;
+        }
+    </style>
 </head>
 
 <body>
-  <div id="openfl-content"></div>
 
-  <script>
-    (function () {
-      function boot() {
-        try {
-          if (typeof lime !== "undefined" && lime.embed) {
-            lime.embed("openfl-content", 0, 0, "#000000", "");
-          }
-        } catch (e) {}
-      }
+<canvas id="canvas"></canvas>
 
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", boot, { once: true });
-      } else {
-        boot();
-      }
-    })();
-  </script>
+<script>
+/* =========================================
+   MOBILE AUDIO UNLOCK (КЛЮЧЕВО!)
+========================================= */
+function unlockAudio() {
+    if (window.createjs && createjs.Sound && createjs.Sound.context) {
+        createjs.Sound.context.resume();
+    }
+
+    document.removeEventListener('touchstart', unlockAudio);
+    document.removeEventListener('mousedown', unlockAudio);
+}
+
+document.addEventListener('touchstart', unlockAudio, { passive: true });
+document.addEventListener('mousedown', unlockAudio);
+
+/* =========================================
+   GAME START (БЕЗ LOADER)
+========================================= */
+function startGame() {
+
+    const oMain = new CMain({
+        win_occurrence: 40,
+        slot_cash: 200,
+        bonus_occurrence: 20,
+        min_reel_loop: 1,
+        reel_delay: 0,
+        time_show_win: 2000,
+        time_show_all_wins: 2000,
+        money: 100,
+        min_bet: 0.05,
+        max_bet: 0.5,
+        max_hold: 3,
+        perc_win_egg_1: 50,
+        perc_win_egg_2: 35,
+        perc_win_egg_3: 15,
+        num_symbol_bonus: 3,
+        num_spin_ads_showing: 10
+    });
+
+    // Никаких preload / ожиданий
+    sizeHandler();
+}
+
+/* =========================================
+   START ASAP
+========================================= */
+if (document.readyState === "complete" || document.readyState === "interactive") {
+    setTimeout(startGame, 0);
+} else {
+    document.addEventListener("DOMContentLoaded", startGame);
+}
+</script>
+
 </body>
 </html>
